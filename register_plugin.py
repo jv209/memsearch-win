@@ -10,6 +10,29 @@ import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
+MARKETPLACE_JSON = {
+    "name": "memsearch-plugins",
+    "owner": {"name": "jv209", "email": ""},
+    "metadata": {
+        "description": "Windows-native semantic memory plugin for Claude Code — markdown-first, backed by LanceDB",
+        "version": "1.0.0",
+    },
+    "plugins": [
+        {
+            "name": "memsearch-win",
+            "description": "Automatic semantic memory for Claude Code on Windows — remembers what you worked on across sessions",
+            "version": "0.4.0",
+            "source": "./plugins/claude-code",
+            "category": "productivity",
+            "author": {"name": "jv209"},
+            "homepage": "https://github.com/jv209/memsearch-win",
+            "repository": "https://github.com/jv209/memsearch-win",
+            "license": "MIT",
+            "keywords": ["memory", "semantic-search", "lancedb", "markdown", "windows"],
+        }
+    ],
+}
+
 NOW = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 PLUGIN_KEY = "memsearch-win@memsearch-plugins"
 MARKETPLACE = "jv209/memsearch-win"
@@ -44,6 +67,25 @@ installed["plugins"][PLUGIN_KEY] = [
 with open(installed_path, "w") as f:
     json.dump(installed, f, indent=2)
 print(f"installed_plugins.json: registered {PLUGIN_KEY}")
+
+# --- Write marketplace cache ---
+marketplace_cache = Path.home() / ".claude/plugins/marketplaces/memsearch-plugins/.claude-plugin"
+marketplace_cache.mkdir(parents=True, exist_ok=True)
+with open(marketplace_cache / "marketplace.json", "w") as f:
+    json.dump(MARKETPLACE_JSON, f, indent=2)
+
+known_path = Path.home() / ".claude/plugins/known_marketplaces.json"
+if known_path.exists():
+    with open(known_path) as f:
+        known = json.load(f)
+    known["memsearch-plugins"] = {
+        "source": {"source": "github", "repo": MARKETPLACE},
+        "installLocation": str(Path.home() / ".claude/plugins/marketplaces/memsearch-plugins"),
+        "lastUpdated": NOW,
+    }
+    with open(known_path, "w") as f:
+        json.dump(known, f, indent=2)
+    print("known_marketplaces.json: updated memsearch-plugins")
 
 # --- Update settings.json ---
 settings_path = Path.home() / ".claude/settings.json"
