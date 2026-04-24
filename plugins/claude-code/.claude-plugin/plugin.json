@@ -1,5 +1,5 @@
 {
-  "name": "memsearch",
+  "name": "memsearch-win",
   "version": "0.4.0",
-  "description": "Automatic semantic memory for Claude Code — remembers what you worked on across sessions"
+  "description": "Automatic semantic memory for Claude Code on Windows — remembers what you worked on across sessions"
 }

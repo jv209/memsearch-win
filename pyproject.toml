@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "memsearch"
+name = "memsearch-win"
 version = "0.4.0"
-description = "Semantic memory search for markdown knowledge bases"
+description = "Windows-native fork of memsearch — semantic memory search using LanceDB instead of Milvus"
 readme = "README.md"
 license = "MIT"
 requires-python = ">=3.10"
@@ -14,10 +14,13 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Operating System :: Microsoft :: Windows",
 ]
 dependencies = [
-    "pymilvus>=2.5.0,!=2.6.10",
-    "milvus-lite>=2.5.0; sys_platform != 'win32'",
+    "lancedb>=0.6.0",
+    "tantivy",
+    "pyarrow>=16",
     "click>=8.1",
     "watchdog>=4.0",
     "setuptools<75",

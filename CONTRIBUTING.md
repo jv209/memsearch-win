@@ -1,14 +1,12 @@
-# Contributing to memsearch
+# Contributing to memsearch-win
 
-Thanks for your interest in contributing! This guide will help you get set up and submit your first PR.
-
-Questions or ideas? Join the [Discord](https://discord.com/invite/FG6hMJStWu).
+Thanks for your interest in contributing! This is a Windows-native fork of [memsearch](https://github.com/zilliztech/memsearch) that replaces Milvus with LanceDB.
 
 ## Getting Started
 
 ```bash
-git clone https://github.com/zilliztech/memsearch.git
-cd memsearch
+git clone https://github.com/jv209/memsearch-win.git
+cd memsearch-win
 uv sync --all-extras
 uv run pre-commit install
 ```
@@ -76,7 +74,8 @@ Use [Conventional Commits](https://www.conventionalcommits.org/) prefixes for **
 src/memsearch/              # Core Python library
 ├── core.py                 # MemSearch public API (index, search, watch, compact)
 ├── cli.py                  # Click CLI
-├── store.py                # Milvus vector store (hybrid search, upsert, dedup)
+├── store_lance.py          # LanceDB vector store (hybrid search, upsert, dedup) — Windows fork
+├── store.py                # Original Milvus store (upstream reference, not used)
 ├── chunker.py              # Markdown heading-based chunking + SHA-256 hash
 ├── embeddings/             # Pluggable embedding providers (onnx, openai, google, etc.)
 ├── scanner.py              # File discovery (.md/.markdown)
@@ -154,7 +153,7 @@ uv run mkdocs build    # build to site/
 
 ## Reporting Issues
 
-Open an issue on [GitHub](https://github.com/zilliztech/memsearch/issues) with:
+Open an issue on [GitHub](https://github.com/jv209/memsearch-win/issues) with:
 
 - What you expected vs. what actually happened
 - Steps to reproduce

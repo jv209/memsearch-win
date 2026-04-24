@@ -31,20 +31,20 @@ uv run memsearch --help
 
 ## Architecture
 
-**memsearch** is a semantic memory search engine for markdown knowledge bases, built on Milvus.
+**memsearch-win** is a Windows-native fork of [memsearch](https://github.com/zilliztech/memsearch) — a semantic memory search engine for markdown knowledge bases. This fork replaces Milvus (no Windows wheels) with LanceDB.
 
 ### Data Flow
 
 ```
-Markdown files → Scanner → Chunker → Embedder → MilvusStore
+Markdown files → Scanner → Chunker → Embedder → LanceStore
                                                       ↓
-                               User query → Embedder → Hybrid Search (dense + BM25 + RRF) → Results
+                               User query → Embedder → Hybrid Search (dense + FTS + RRF) → Results
 ```
 
 ### Core Library (`src/memsearch/`)
 
 - **`core.py`** — `MemSearch` class: the public Python API that orchestrates everything. Entry point for `index()`, `search()`, `compact()`, `watch()`.
-- **`store.py`** — `MilvusStore`: Milvus wrapper handling collection creation, upsert, hybrid search (dense cosine + BM25 sparse + RRF reranking), and cleanup. The `chunk_hash` (composite ID of source+lines+content+model) is the VARCHAR primary key.
+- **`store_lance.py`** — `LanceStore`: LanceDB backend (Windows-native drop-in for `MilvusStore`). Handles collection creation, upsert with merge_insert, hybrid search (dense vector + tantivy FTS + RRF reranking), and cleanup. The `chunk_hash` (composite ID of source+lines+content+model) is the primary key.
 - **`chunker.py`** — Splits markdown by headings into `Chunk` dataclasses. SHA-256 content hash enables dedup. `compute_chunk_id()` generates composite IDs matching OpenClaw's format.
 - **`embeddings/__init__.py`** — `EmbeddingProvider` protocol + lazy-loading factory (`get_provider()`). Providers: openai (default), google, voyage, jina, mistral, ollama, local, onnx.
 - **`scanner.py`** — Walks directories to find `.md`/`.markdown` files, returns `ScannedFile` list.

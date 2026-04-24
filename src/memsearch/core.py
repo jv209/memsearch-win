@@ -16,7 +16,7 @@ from .chunker import Chunk, chunk_markdown, clean_content_for_embedding, compute
 from .compact import compact_chunks
 from .embeddings import EmbeddingProvider, get_provider
 from .scanner import ScannedFile, scan_paths
-from .store import MilvusStore
+from .store_lance import LanceStore as MilvusStore
 
 logger = logging.getLogger(__name__)
 
