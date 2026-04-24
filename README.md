@@ -2,7 +2,7 @@
 
 **Windows-native fork of [memsearch](https://github.com/zilliztech/memsearch) — replaces Milvus with LanceDB.**
 
-The upstream project uses milvus-lite as its local vector store, which has no Windows wheels. This fork swaps it for [LanceDB](https://lancedb.github.io/lancedb/), which is fully Windows-native. The result is a Claude Code memory plugin that works on Windows without WSL.
+The upstream project uses milvus-lite as its local vector store, which has no Windows wheels. This fork swaps it for [LanceDB](https://lancedb.github.io/lancedb/), which is fully Windows-native. Everything else — the Claude Code plugin, hybrid search, ONNX embeddings, the Python API — works the same way.
 
 > **Upstream:** https://github.com/zilliztech/memsearch  
 > **What diverges from upstream:** `store_lance.py` (new), `core.py` (1-line import swap), `pyproject.toml` (dependency swap)
@@ -26,13 +26,15 @@ Memory files are plain markdown — readable, editable, version-controllable. La
 ## Requirements
 
 - Windows 10/11
-- Python 3.10+
+- Python 3.10+ (use the `py` launcher)
 - Claude Code
 - `uv` (recommended) or `pip`
 
 ---
 
 ## Install
+
+**1. Clone and install the package:**
 
 ```bash
 git clone https://github.com/jv209/memsearch-win.git
@@ -42,27 +44,35 @@ uv sync --all-extras
 
 The `[onnx]` extra (included in `--all-extras`) enables the default local embedding model (bge-m3, CPU, no API key). On first use it downloads ~558 MB from HuggingFace Hub.
 
----
-
-## Claude Code Plugin Setup
-
-### 1. Register the plugin
+**2. Register the plugin with Claude Code:**
 
 ```bash
-python register_plugin.py
+py register_plugin.py
 ```
 
-Then run `/reload-plugins` in a Claude Code session (or restart Claude Code).
+This copies the plugin to Claude Code's plugin cache and registers it in your settings.
 
-### 2. Verify it's working
+**3. Activate in Claude Code:**
 
-After a session ends, check for a daily memory file:
+```
+/reload-plugins
+```
+
+You should see `[memsearch-win v0.4.0]` in the status line at the start of your next session.
+
+---
+
+## Verify it's working
+
+After a session ends, check for a daily memory file in your project folder:
 
 ```bash
 ls .memsearch/memory/
 ```
 
-### 3. Recall memories
+---
+
+## Recall memories
 
 ```
 /memory-recall what did we discuss about Redis?
@@ -107,6 +117,16 @@ memsearch expand <chunk_hash>      # show full section around a chunk
 memsearch stats                    # show indexed chunk count
 memsearch reset --yes              # drop index and rebuild
 ```
+
+---
+
+## LanceDB backend notes
+
+The store is in `src/memsearch/store_lance.py`. Key behaviors that differ from Milvus:
+
+- **SQL filter syntax:** DataFusion treats backslashes as literal characters — `C:\path` in a filter matches stored `C:\path` directly.
+- **Hybrid search API:** `.search(query_type="hybrid").vector(emb).text(text).rerank(RRFReranker()).limit(n)`
+- **FTS index:** Rebuilt after every upsert (`create_fts_index("content", replace=True)`).
 
 ---
 

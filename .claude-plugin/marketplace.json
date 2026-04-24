@@ -1,27 +1,27 @@
 {
   "name": "memsearch-plugins",
   "owner": {
-    "name": "Zilliz",
-    "email": "support@zilliz.com"
+    "name": "jv209",
+    "email": ""
   },
   "metadata": {
-    "description": "Semantic memory search plugin for Claude Code — markdown-first, backed by Milvus",
+    "description": "Windows-native semantic memory plugin for Claude Code — markdown-first, backed by LanceDB",
     "version": "1.0.0"
   },
   "plugins": [
     {
-      "name": "memsearch",
-      "description": "Automatic semantic memory for Claude Code — remembers what you worked on across sessions",
-      "version": "0.3.6",
+      "name": "memsearch-win",
+      "description": "Automatic semantic memory for Claude Code on Windows — remembers what you worked on across sessions",
+      "version": "0.4.0",
       "source": "./plugins/claude-code",
       "category": "productivity",
       "author": {
-        "name": "Zilliz"
+        "name": "jv209"
       },
-      "homepage": "https://github.com/zilliztech/memsearch",
-      "repository": "https://github.com/zilliztech/memsearch",
+      "homepage": "https://github.com/jv209/memsearch-win",
+      "repository": "https://github.com/jv209/memsearch-win",
       "license": "MIT",
-      "keywords": ["memory", "semantic-search", "milvus", "markdown"]
+      "keywords": ["memory", "semantic-search", "lancedb", "markdown", "windows"]
     }
   ]
 }
