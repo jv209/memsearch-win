@@ -69,7 +69,10 @@ MEMORY_FILE="$MEMORY_DIR/$TODAY.md"
 
 # Extract session ID and last user turn UUID for progressive disclosure anchors
 SESSION_ID=$(basename "$TRANSCRIPT_PATH" .jsonl)
-LAST_USER_TURN_UUID=$(python3 -c "
+_PYTHON=$(command -v py 2>/dev/null || command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
+LAST_USER_TURN_UUID=""
+if [ -n "$_PYTHON" ]; then
+  LAST_USER_TURN_UUID=$("$_PYTHON" -c "
 import json, sys
 uuid = ''
 with open(sys.argv[1]) as f:
@@ -81,6 +84,7 @@ with open(sys.argv[1]) as f:
         except: pass
 print(uuid)
 " "$TRANSCRIPT_PATH" 2>/dev/null || true)
+fi
 
 # Load summarization prompt: user custom (via config) > plugin built-in template
 AGENT_NAME="Claude Code"

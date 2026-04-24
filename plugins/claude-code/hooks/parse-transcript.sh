@@ -28,7 +28,14 @@ fi
 
 MAX_RESULT_CHARS="${MEMSEARCH_MAX_RESULT_CHARS:-1000}"
 
-python3 -c '
+# Portable Python: 'py' is the Windows launcher; fall back to python3/python on Linux/Mac
+PYTHON_CMD=$(command -v py 2>/dev/null || command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
+if [ -z "$PYTHON_CMD" ]; then
+  echo "(python not found)" >&2
+  exit 1
+fi
+
+$PYTHON_CMD -c '
 import json, sys
 
 MAX_RESULT_CHARS = int(sys.argv[2])
