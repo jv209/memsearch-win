@@ -35,7 +35,7 @@ if [ -z "$PYTHON_CMD" ]; then
   exit 1
 fi
 
-$PYTHON_CMD -c '
+PYTHONUTF8=1 $PYTHON_CMD -c '
 import json, sys
 
 MAX_RESULT_CHARS = int(sys.argv[2])
@@ -136,7 +136,7 @@ def format_turn(lines):
 
 # --- Main ---
 transcript_path = sys.argv[1]
-with open(transcript_path) as f:
+with open(transcript_path, encoding="utf-8") as f:
     lines = f.readlines()
 
 if not lines:
