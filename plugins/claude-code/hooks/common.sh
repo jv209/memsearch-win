@@ -55,27 +55,30 @@ COLLECTION_NAME=$("$(dirname "${BASH_SOURCE[0]}")/../scripts/derive-collection.s
 _json_val() {
   local json="$1" key="$2" default="${3:-}"
   local result=""
-
-  if command -v jq &>/dev/null; then
-    # Build jq filter from dotted key: "info.version" → ".info.version"
-    result=$(printf '%s' "$json" | jq -r ".${key} // empty" 2>/dev/null) || true
-  else
-    result=$(python3 -c "
+  local _py_cmd
+  _py_cmd=$(command -v py 2>/dev/null || command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
+  local _py_snippet='
 import json, sys
 try:
     obj = json.loads(sys.argv[1])
     val = obj
-    for k in sys.argv[2].split('.'):
+    for k in sys.argv[2].split("."):
         val = val[k]
     if val is None:
-        print('')
+        print("")
     elif isinstance(val, bool):
         print(str(val).lower())
     else:
         print(val)
 except Exception:
-    print('')
-" "$json" "$key" 2>/dev/null) || true
+    print("")
+'
+
+  if command -v jq &>/dev/null; then
+    # Build jq filter from dotted key: "info.version" → ".info.version"
+    result=$(printf '%s' "$json" | jq -r ".${key} // empty" 2>/dev/null) || true
+  elif [ -n "$_py_cmd" ]; then
+    result=$("$_py_cmd" -c "$_py_snippet" "$json" "$key" 2>/dev/null) || true
   fi
 
   if [ -z "$result" ]; then
@@ -90,10 +93,14 @@ except Exception:
 # Encode a string as a JSON string (with surrounding quotes).
 _json_encode_str() {
   local str="$1"
+  local _py_cmd
+  _py_cmd=$(command -v py 2>/dev/null || command -v python3 2>/dev/null || command -v python 2>/dev/null || echo "")
   if command -v jq &>/dev/null; then
     printf '%s' "$str" | jq -Rs . 2>/dev/null && return 0
   fi
-  printf '%s' "$str" | python3 -c "import json,sys; print(json.dumps(sys.stdin.read()))" 2>/dev/null && return 0
+  if [ -n "$_py_cmd" ]; then
+    printf '%s' "$str" | "$_py_cmd" -c "import json,sys; print(json.dumps(sys.stdin.read()))" 2>/dev/null && return 0
+  fi
   # Last resort: simple quoting (no special char escaping)
   printf '"%s"' "$str"
   return 0
