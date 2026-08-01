@@ -301,7 +301,7 @@ def expand(
 
     Part of the progressive disclosure workflow (search -> expand -> transcript).
     """
-    from .store import MilvusStore
+    from .store_lance import LanceStore as MilvusStore
 
     cfg = _safe_resolve_config(
         _build_cli_overrides(
@@ -611,7 +611,7 @@ def stats(
     milvus_token: str | None,
 ) -> None:
     """Show statistics about the index."""
-    from .store import MilvusStore
+    from .store_lance import LanceStore as MilvusStore
 
     cfg = _safe_resolve_config(
         _build_cli_overrides(
@@ -649,7 +649,7 @@ def reset(
     milvus_token: str | None,
 ) -> None:
     """Drop all indexed data."""
-    from .store import MilvusStore
+    from .store_lance import LanceStore as MilvusStore
 
     cfg = _safe_resolve_config(
         _build_cli_overrides(
