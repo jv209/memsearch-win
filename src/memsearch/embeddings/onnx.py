@@ -52,6 +52,7 @@ class OnnxEmbedding:
 
         self._session = ort.InferenceSession(model_path)
         self._output_names = [o.name for o in self._session.get_outputs()]
+        self._input_names = [i.name for i in self._session.get_inputs()]
         self._has_dense_vecs = "dense_vecs" in self._output_names
         self._model = model
 
@@ -137,6 +138,11 @@ class OnnxEmbedding:
             "input_ids": input_ids,
             "attention_mask": attention_mask,
         }
+        # Some ONNX exports (e.g. Xenova BERT/XLM-R exports) declare a
+        # token_type_ids input; bge-m3-onnx-int8 does not. Feed all-zeros
+        # (single-segment) only when the model actually expects it.
+        if "token_type_ids" in self._input_names:
+            feed["token_type_ids"] = np.zeros_like(input_ids)
         outputs = self._session.run(None, feed)
 
         if self._has_dense_vecs:

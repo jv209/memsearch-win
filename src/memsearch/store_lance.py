@@ -131,8 +131,18 @@ class LanceStore:
             .when_not_matched_insert_all()
             .execute(batch)
         )
-        tbl.create_fts_index("content", replace=True)
         return len(chunks)
+
+    def build_fts(self) -> None:
+        """(Re)build the full-text index over the whole table.
+
+        Called once after a bulk index (or after a watch event) rather than
+        on every upsert — rebuilding the FTS index per file makes a bulk
+        index O(N^2) and dominates wall-clock time on large corpora.
+        """
+        if self._table is None or self._tbl.count_rows() == 0:
+            return
+        self._tbl.create_fts_index("content", replace=True)
 
     def search(
         self,
@@ -151,21 +161,28 @@ class LanceStore:
 
         sql_filter = _translate_filter(filter_expr)
 
+        rows = None
         if query_text:
-            q = (
-                tbl.search(query_type="hybrid")
-                .vector(query_embedding)
-                .text(query_text)
-                .rerank(RRFReranker())
-                .limit(top_k)
-            )
-        else:
+            # Hybrid (dense + FTS) — falls back to vector-only if the FTS
+            # index does not exist yet (e.g. before build_fts() has run).
+            try:
+                q = (
+                    tbl.search(query_type="hybrid")
+                    .vector(query_embedding)
+                    .text(query_text)
+                    .rerank(RRFReranker())
+                    .limit(top_k)
+                )
+                if sql_filter:
+                    q = q.where(sql_filter, prefilter=True)
+                rows = q.to_list()
+            except Exception:
+                rows = None
+        if rows is None:
             q = tbl.search(query_embedding).limit(top_k)
-
-        if sql_filter:
-            q = q.where(sql_filter, prefilter=True)
-
-        rows = q.to_list()
+            if sql_filter:
+                q = q.where(sql_filter, prefilter=True)
+            rows = q.to_list()
         result = []
         for row in rows:
             score = row.get("_relevance_score", row.get("_distance", 0.0))

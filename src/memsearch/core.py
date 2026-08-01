@@ -110,6 +110,10 @@ class MemSearch:
                 self._store.delete_by_source(source)
                 logger.info("Removed stale chunks for deleted file: %s", source)
 
+        # Build the full-text index once over the whole table, not per-file
+        # (per-file rebuilds make a bulk index O(N^2)).
+        self._store.build_fts()
+
         if failed:
             logger.warning("Indexed %d chunks from %d files (%d files failed)", total, len(files) - failed, failed)
         else:
@@ -378,6 +382,9 @@ class MemSearch:
                 else:
                     n = loop.run_until_complete(self.index_file(file_path))
                     summary = f"Indexed {n} chunks from {file_path}"
+                # Refresh the FTS index after each change (bulk index builds it
+                # once at the end; watch events are infrequent enough to rebuild).
+                self._store.build_fts()
                 logger.info(summary)
                 if on_event is not None:
                     on_event(event_type, summary, file_path)
