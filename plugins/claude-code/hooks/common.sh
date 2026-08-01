@@ -19,13 +19,29 @@ for p in "$HOME/.local/bin" "$HOME/.cargo/bin" "$HOME/bin" "/usr/local/bin"; do
 done
 
 # Memory directory and memsearch state directory are project-scoped.
-# Prefer git root to avoid .memsearch scattered in subdirectories when
-# CLAUDE_PROJECT_DIR is unset (child claude -p) or points to a subdir.
+# Resolution order (to avoid .memsearch scattered in subdirectories):
+#   1. git repo root, if inside one
+#   2. nearest ancestor containing a .memsearch/ dir or .memsearch.toml marker
+#   3. CLAUDE_PROJECT_DIR, or cwd as last resort
 _GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "")"
 if [ -n "$_GIT_ROOT" ]; then
   _PROJECT_DIR="$_GIT_ROOT"
 else
-  _PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+  # Walk up from cwd looking for a memsearch marker
+  _PROJECT_DIR=""
+  _scan="$(pwd)"
+  while [ -n "$_scan" ] && [ "$_scan" != "/" ]; do
+    if [ -d "$_scan/.memsearch" ] || [ -f "$_scan/.memsearch.toml" ]; then
+      _PROJECT_DIR="$_scan"
+      break
+    fi
+    _parent="$(dirname "$_scan")"
+    [ "$_parent" = "$_scan" ] && break  # reached filesystem root (Windows drive root)
+    _scan="$_parent"
+  done
+  if [ -z "$_PROJECT_DIR" ]; then
+    _PROJECT_DIR="${CLAUDE_PROJECT_DIR:-.}"
+  fi
 fi
 MEMSEARCH_DIR="${MEMSEARCH_DIR:-$_PROJECT_DIR/.memsearch}"
 MEMORY_DIR="$MEMSEARCH_DIR/memory"
