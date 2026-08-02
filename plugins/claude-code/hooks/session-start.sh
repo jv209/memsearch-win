@@ -124,20 +124,25 @@ start_watch
 # Kill any previous background index first to prevent process accumulation across sessions.
 # If embedding dimension changed (e.g. user switched provider), auto-reset and re-index.
 if [[ "$MILVUS_URI" != http* ]] && [[ "$MILVUS_URI" != tcp* ]]; then
-  kill_orphaned_index
-  (
-    _index_args=("$MEMORY_DIR")
-    [ -n "$COLLECTION_NAME" ] && _index_args+=(--collection "$COLLECTION_NAME")
-    [ -n "$COLLECTION_DESC" ] && _index_args+=(--description "$COLLECTION_DESC")
-    INDEX_OUTPUT=$($MEMSEARCH_CMD index "${_index_args[@]}" 2>&1) || true
-    if echo "$INDEX_OUTPUT" | grep -q "dimension mismatch"; then
-      _reset_args=(--yes)
-      [ -n "$COLLECTION_NAME" ] && _reset_args+=(--collection "$COLLECTION_NAME")
-      $MEMSEARCH_CMD reset "${_reset_args[@]}" 2>/dev/null || true
-      $MEMSEARCH_CMD index "${_index_args[@]}" 2>/dev/null || true
-    fi
-  ) >/dev/null 2>&1 &
-  echo $! > "$INDEX_PIDFILE"
+  # Guard: skip if an index for this collection is already running, and skip when
+  # memory is unchanged since the last index (see common.sh). Prevents the
+  # per-session index from stacking on a still-running one.
+  if ! _index_running && _memory_changed_since_last_index; then
+    _record_index_signature
+    (
+      _index_args=("$MEMORY_DIR")
+      [ -n "$COLLECTION_NAME" ] && _index_args+=(--collection "$COLLECTION_NAME")
+      [ -n "$COLLECTION_DESC" ] && _index_args+=(--description "$COLLECTION_DESC")
+      INDEX_OUTPUT=$($MEMSEARCH_CMD index "${_index_args[@]}" 2>&1) || true
+      if echo "$INDEX_OUTPUT" | grep -q "dimension mismatch"; then
+        _reset_args=(--yes)
+        [ -n "$COLLECTION_NAME" ] && _reset_args+=(--collection "$COLLECTION_NAME")
+        $MEMSEARCH_CMD reset "${_reset_args[@]}" 2>/dev/null || true
+        $MEMSEARCH_CMD index "${_index_args[@]}" 2>/dev/null || true
+      fi
+    ) >/dev/null 2>&1 &
+    echo $! > "$INDEX_PIDFILE"
+  fi
 fi
 
 # Always include status in systemMessage

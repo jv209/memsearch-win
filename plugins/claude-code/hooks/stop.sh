@@ -150,12 +150,12 @@ fi
 } >> "$MEMORY_FILE"
 _dbg "appended to $MEMORY_FILE"
 
-# Kill any previous background index before re-indexing to avoid process accumulation
-kill_orphaned_index
-
-# Index immediately — don't rely on watch (which may be killed by SessionEnd before debounce fires)
-_dbg "running memsearch index"
-run_memsearch index "$MEMORY_DIR"
+# Index the memory — guarded so per-turn indexing cannot pile up.
+# skip-if-running + index-only-on-change (see common.sh guarded_index). The old
+# kill_orphaned_index approach could not kill native Windows python.exe, so the
+# per-turn full re-embeds stacked and saturated the machine. Launch is detached.
+_dbg "guarded index (skip-if-running + on-change)"
+guarded_index
 _dbg "done"
 
 echo '{}'

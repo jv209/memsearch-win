@@ -185,6 +185,63 @@ kill_orphaned_index() {
   fi
 }
 
+# --- Windows-aware index guards (skip-if-running + index-only-on-change) ---
+#
+# The pgrep/kill cleanup above does NOT work against native Windows python.exe,
+# so a per-turn `memsearch index` used to STACK instead of replace — dozens of
+# full-collection re-embeds piling up and saturating CPU/RAM. Rather than kill
+# (unreliable here), SKIP launching a new index when one is already running for
+# this collection, and skip entirely when the memory is unchanged since the last
+# index. Net effect: one index at a time, only when there is new content.
+
+# True if a memsearch index process for THIS collection is already alive (Windows/CIM).
+_index_running() {
+  local _ps
+  _ps=$(command -v powershell.exe 2>/dev/null || command -v powershell 2>/dev/null || echo "")
+  if [ -z "$_ps" ] || [ -z "${COLLECTION_NAME:-}" ]; then
+    return 1  # can't determine → assume not running (preserve prior behavior)
+  fi
+  local n
+  n=$("$_ps" -NoProfile -NonInteractive -Command \
+    "@(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" -ErrorAction SilentlyContinue | Where-Object { \$_.CommandLine -like '*index*' -and \$_.CommandLine -like '*$COLLECTION_NAME*' }).Count" \
+    2>/dev/null | tr -d '[:space:]') || true
+  [ -n "$n" ] && [ "$n" -gt 0 ] 2>/dev/null
+}
+
+# Cheap change signature of the memory dir: newest mtime + file count.
+_SIGFILE="$MEMSEARCH_DIR/.last-index.sig"
+_memory_signature() {
+  ls -la --time-style=+%s "$MEMORY_DIR"/*.md 2>/dev/null \
+    | awk '{c++; if($6>m)m=$6} END{print m"_"c}'
+}
+_memory_changed_since_last_index() {
+  local cur prev
+  cur=$(_memory_signature)
+  prev=$(cat "$_SIGFILE" 2>/dev/null || echo "")
+  [ "$cur" != "$prev" ]
+}
+_record_index_signature() {
+  _memory_signature > "$_SIGFILE" 2>/dev/null || true
+}
+
+# Launch an index only if safe: not already running, and memory changed.
+# Detached so an ONNX embed longer than the hook timeout can't be orphan-killed,
+# while skip-if-running on the next turn prevents a second one from stacking.
+guarded_index() {
+  if [ -z "$MEMSEARCH_CMD" ] || [ -z "${COLLECTION_NAME:-}" ]; then
+    return 0
+  fi
+  if _index_running; then
+    return 0  # skip-if-running
+  fi
+  if ! _memory_changed_since_last_index; then
+    return 0  # index-only-on-change
+  fi
+  _record_index_signature
+  ( nohup $MEMSEARCH_CMD index "$MEMORY_DIR" --collection "$COLLECTION_NAME" \
+      ${COLLECTION_DESC:+--description "$COLLECTION_DESC"} </dev/null >/dev/null 2>&1 & )
+}
+
 # --- Watch singleton management ---
 
 WATCH_PIDFILE="$MEMSEARCH_DIR/.watch.pid"
